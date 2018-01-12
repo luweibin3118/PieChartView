@@ -14,7 +14,7 @@ project/build.gradle中添加：
 project/app/build.gradle中添加：
 	
 	dependencies {
-        compile 'com.github.luweibin3118:PieChartView:v1.0.0'
+        compile 'com.github.luweibin3118:PieChartView:v1.0.1'
     }
 
 
@@ -51,7 +51,7 @@ project/app/build.gradle中添加：
  ![image](https://github.com/luweibin3118/PieChartView/blob/master/app/Screenshot_20180112-212035.png)
  
  
- 5. 设置以下方法可以视线环形图： 
+ 5. 设置以下方法可以实现环形图： 
       
         pieChartView.setCell(5);            //设置环形图的间距
         pieChartView.setInnerRadius(0.4f);  //设置环形图内环半径比例 0 - 1.0f

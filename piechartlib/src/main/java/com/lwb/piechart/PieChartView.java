@@ -255,9 +255,14 @@ public class PieChartView extends SurfaceView implements SurfaceHolder.Callback,
             mPaint.setStyle(Paint.Style.FILL);
             mPaint.setColor(itemType.color);
             if (pieCell > 0) {
-                tempRectF.set(pieRectF.left - (float) (pieCell * cos), pieRectF.top - (float) (pieCell * sin),
-                        pieRectF.right - (float) (pieCell * cos), pieRectF.bottom - (float) (pieCell * sin));
-                mCanvas.drawArc(tempRectF, startRadius, itemType.radius, true, mPaint);
+                if (sumRadius <= offRadius) {
+                    tempRectF.set(pieRectF.left - (float) (pieCell * cos), pieRectF.top - (float) (pieCell * sin),
+                            pieRectF.right - (float) (pieCell * cos), pieRectF.bottom - (float) (pieCell * sin));
+                    mCanvas.drawArc(tempRectF, startRadius, itemType.radius, true, mPaint);
+                }else {
+                    mCanvas.drawArc(tempRectF, startRadius, itemType.radius - (Math.abs(offRadius - sumRadius)), true, mPaint);
+                    break;
+                }
             } else {
                 if (sumRadius <= offRadius) {
                     mCanvas.drawArc(pieRectF, startRadius, itemType.radius, true, mPaint);
