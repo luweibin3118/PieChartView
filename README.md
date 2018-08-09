@@ -19,15 +19,15 @@ project/app/build.gradle中添加：
 
 
  1. 在布局文件中引入RadarChartView：
-
-     
+ 
+ 
     <com.lwb.piechart.PieChartView
         android:id="@+id/pie_chart_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
-        
 
 
+ 
  2. Java代码中，通过以下方法添加一条属性：
 
         PieChartView pieChartView = findViewById(R.id.pie_chart_view);
