@@ -1,14 +1,17 @@
 package com.lwb.piechart;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PathMeasure;
 import android.graphics.Point;
 import android.graphics.RectF;
+import android.support.annotation.Nullable;
 import android.util.AttributeSet;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
+import android.view.View;
+import android.view.animation.LinearInterpolator;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -16,18 +19,18 @@ import java.util.List;
 
 /**
  * @author 卢伟斌.
- * @date 2018/1/11.
+ * @date 2018/8/9.
  * ==================================
  * Copyright (c) 2018 TRANSSION.Co.Ltd.
  * All rights reserved.
  */
-public class PieChartView extends SurfaceView implements SurfaceHolder.Callback, Runnable {
+public class PieChartView extends View {
 
     private Paint mPaint;
 
-    private Path mPath;
+    private Path mPath, drawLinePath = new Path();
 
-    private SurfaceHolder mSurfaceHolder;
+    private PathMeasure mPathMeasure;
 
     private Canvas mCanvas;
 
@@ -37,19 +40,17 @@ public class PieChartView extends SurfaceView implements SurfaceHolder.Callback,
 
     private int radius;
 
-    private List<ItemType> itemTypeList, leftTypeList, rightTypeList;
+    private List<PieChartView.ItemType> itemTypeList, leftTypeList, rightTypeList;
 
     private List<Point> itemPoints;
-
-    private Thread drawThread;
 
     private int cell = 0;
 
     private float innerRadius = 0.0f;
 
-    private float offRadius = 0;
+    private float offRadius = 0, offLine;
 
-    private int refreshTime = 16;
+    private int textAlpha;
 
     private Point firstPoint;
 
@@ -59,16 +60,18 @@ public class PieChartView extends SurfaceView implements SurfaceHolder.Callback,
 
     private int defaultStartAngle = -90;
 
-    private boolean isDrawing = false;
-
     private float pieCell;
+
+    private ValueAnimator animator;
+
+    private long animDuration = 1000;
 
     public PieChartView(Context context) {
         super(context);
         init();
     }
 
-    public PieChartView(Context context, AttributeSet attrs) {
+    public PieChartView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
         init();
     }
@@ -76,14 +79,9 @@ public class PieChartView extends SurfaceView implements SurfaceHolder.Callback,
     private void init() {
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
         mPath = new Path();
-        mSurfaceHolder = getHolder();
-        mSurfaceHolder.addCallback(this);
 
         pieRectF = new RectF();
         tempRectF = new RectF();
-
-        setFocusable(true);
-        setFocusableInTouchMode(true);
 
         itemTypeList = new ArrayList<>();
         leftTypeList = new ArrayList<>();
@@ -92,52 +90,74 @@ public class PieChartView extends SurfaceView implements SurfaceHolder.Callback,
     }
 
     @Override
-    public void surfaceCreated(SurfaceHolder holder) {
-        drawThread = new Thread(this);
-        drawThread.start();
-        isDrawing = true;
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        startAnim();
     }
 
     @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        this.width = width;
-        this.height = height;
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        if (animator != null) {
+            animator.cancel();
+        }
+    }
+
+    private void startAnim() {
+        animator = ValueAnimator.ofFloat(0, 360f * 2);
+        animator.setDuration(animDuration);
+        animator.setInterpolator(new LinearInterpolator());
+        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float value = (float) animation.getAnimatedValue();
+                if (value < 360f) {
+                    offRadius = value;
+                    offLine = 0;
+                    textAlpha = 0;
+                } else if (value >= 360f) {
+                    offRadius = 360f;
+                    offLine = (value - 360f) / 360f;
+                    if (offLine > 0.5f) {
+                        textAlpha = (int) (255 * ((offLine - 0.5f) / 0.5f));
+                    } else {
+                        textAlpha = 0;
+                    }
+                } else if (value == 360f * 2) {
+                    offRadius = 360f;
+                    offLine = 1.0f;
+                    textAlpha = 255;
+                }
+                postInvalidate();
+            }
+        });
+        animator.start();
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        this.width = w;
+        this.height = h;
         radius = Math.min(width, height) / 4;
         pieRectF.set(width / 2 - radius, height / 2 - radius, width / 2 + radius, height / 2 + radius);
     }
 
     @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
-        isDrawing = false;
-    }
-
-    @Override
-    public void run() {
-        if (itemTypeList == null || itemTypeList.size() == 0) {
-            return;
-        }
-        offRadius = 0f;
-        while (offRadius <= 360f + 10) {
-            if (!isDrawing) {
-                return;
-            }
-            long start = System.currentTimeMillis();
-            offRadius = offRadius + 10;
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        try {
+            mCanvas = canvas;
             drawPie();
-            long end = System.currentTimeMillis();
-            if (end - start < refreshTime) {
-                try {
-                    Thread.sleep(refreshTime - (end - start));
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            if (offRadius == 360f) {
+                drawTitle();
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        drawTitle();
     }
 
     private void drawTitle() {
-        mCanvas = mSurfaceHolder.lockCanvas();
         resetPaint();
         float startRadius = defaultStartAngle;
         int count = rightTypeList.size();
@@ -149,7 +169,7 @@ public class PieChartView extends SurfaceView implements SurfaceHolder.Callback,
         }
         for (int i = 0; i < count; i++) {
             mPath.reset();
-            ItemType itemType = rightTypeList.get(i);
+            PieChartView.ItemType itemType = rightTypeList.get(i);
             double angle = 2 * Math.PI * ((startRadius + itemType.radius / 2) / 360d);
             int x = (int) (width / 2 + radius * Math.cos(angle));
             int y = (int) (height / 2 + radius * Math.sin(angle));
@@ -163,16 +183,23 @@ public class PieChartView extends SurfaceView implements SurfaceHolder.Callback,
             mPaint.setStrokeWidth(2);
             mPaint.setColor(itemType.color);
             mPaint.setStyle(Paint.Style.STROKE);
-            mCanvas.drawPath(mPath, mPaint);
+            mPathMeasure = new PathMeasure(mPath, false);
+            drawLinePath.reset();
+            mPathMeasure.getSegment(0, mPathMeasure.getLength() * offLine, drawLinePath, true);
+            mCanvas.drawPath(drawLinePath, mPaint);
             startRadius += itemType.radius;
-            mPaint.setTextSize(itemTextSize);
-            mPaint.setStyle(Paint.Style.FILL);
-            mPaint.setTextAlign(Paint.Align.CENTER);
-            mCanvas.drawText(itemType.type, centerPoint.x + (endPoint.x - centerPoint.x) / 2,
-                    centerPoint.y - textPadding, mPaint);
-            mPaint.setTextSize(itemTextSize * 4 / 5);
-            mCanvas.drawText(itemType.getPercent(), centerPoint.x + (endPoint.x - centerPoint.x) / 2,
-                    centerPoint.y + (itemTextSize + textPadding) * 4 / 5, mPaint);
+
+            if (textAlpha > 0) {
+                mPaint.setTextSize(itemTextSize);
+                mPaint.setStyle(Paint.Style.FILL);
+                mPaint.setTextAlign(Paint.Align.CENTER);
+                mPaint.setAlpha(textAlpha);
+                mCanvas.drawText(itemType.type, centerPoint.x + (endPoint.x - centerPoint.x) / 2,
+                        centerPoint.y - textPadding, mPaint);
+                mPaint.setTextSize(itemTextSize * 4 / 5);
+                mCanvas.drawText(itemType.getPercent(), centerPoint.x + (endPoint.x - centerPoint.x) / 2,
+                        centerPoint.y + (itemTextSize + textPadding) * 4 / 5, mPaint);
+            }
         }
 
         count = leftTypeList.size();
@@ -184,7 +211,7 @@ public class PieChartView extends SurfaceView implements SurfaceHolder.Callback,
 
         for (int i = 0; i < count; i++) {
             mPath.reset();
-            ItemType itemType = leftTypeList.get(i);
+            PieChartView.ItemType itemType = leftTypeList.get(i);
             double angle = 2 * Math.PI * ((startRadius + itemType.radius / 2) / 360d);
             int x = (int) (width / 2 + radius * Math.cos(angle));
             int y = (int) (height / 2 + radius * Math.sin(angle));
@@ -200,30 +227,41 @@ public class PieChartView extends SurfaceView implements SurfaceHolder.Callback,
             mPaint.setAntiAlias(true);
             mPaint.setDither(true);
             mPaint.setStyle(Paint.Style.STROKE);
-            mCanvas.drawPath(mPath, mPaint);
+            mPathMeasure = new PathMeasure(mPath, false);
+            drawLinePath.reset();
+            mPathMeasure.getSegment(0, mPathMeasure.getLength() * offLine, drawLinePath, true);
+            mCanvas.drawPath(drawLinePath, mPaint);
             startRadius += itemType.radius;
-            mPaint.setTextSize(itemTextSize);
-            mPaint.setStyle(Paint.Style.FILL);
-            mPaint.setTextAlign(Paint.Align.CENTER);
-            mCanvas.drawText(itemType.type, centerPoint.x + (endPoint.x - centerPoint.x) / 2,
-                    centerPoint.y - textPadding, mPaint);
-            mPaint.setTextSize(itemTextSize * 4 / 5);
-            mCanvas.drawText(itemType.getPercent(), centerPoint.x + (endPoint.x - centerPoint.x) / 2,
-                    centerPoint.y + (itemTextSize + textPadding) * 4 / 5, mPaint);
+
+            if (textAlpha > 0) {
+                mPaint.setTextSize(itemTextSize);
+                mPaint.setStyle(Paint.Style.FILL);
+                mPaint.setTextAlign(Paint.Align.CENTER);
+                mPaint.setAlpha(textAlpha);
+                mCanvas.drawText(itemType.type, centerPoint.x + (endPoint.x - centerPoint.x) / 2,
+                        centerPoint.y - textPadding, mPaint);
+                mPaint.setTextSize(itemTextSize * 4 / 5);
+                mCanvas.drawText(itemType.getPercent(), centerPoint.x + (endPoint.x - centerPoint.x) / 2,
+                        centerPoint.y + (itemTextSize + textPadding) * 4 / 5, mPaint);
+            }
         }
 
-        mSurfaceHolder.unlockCanvasAndPost(mCanvas);
+        if (textAlpha == 1f) {
+            itemTypeList.clear();
+            leftTypeList.clear();
+            rightTypeList.clear();
+            itemPoints.clear();
+        }
     }
 
     private void drawPie() {
-        mCanvas = mSurfaceHolder.lockCanvas();
         if (mCanvas == null) {
             return;
         }
         mCanvas.drawColor(backGroundColor);
         mPaint.setStyle(Paint.Style.FILL);
         int sum = 0;
-        for (ItemType itemType : itemTypeList) {
+        for (PieChartView.ItemType itemType : itemTypeList) {
             sum += itemType.widget;
         }
         float a = 360f / sum;
@@ -232,7 +270,7 @@ public class PieChartView extends SurfaceView implements SurfaceHolder.Callback,
         leftTypeList.clear();
         rightTypeList.clear();
         itemPoints.clear();
-        for (ItemType itemType : itemTypeList) {
+        for (PieChartView.ItemType itemType : itemTypeList) {
             itemType.radius = itemType.widget * a;
             double al = 2 * Math.PI * ((startRadius + 90) / 360d);
             Point point = new Point((int) (width / 2 + radius * Math.sin(al)),
@@ -259,7 +297,7 @@ public class PieChartView extends SurfaceView implements SurfaceHolder.Callback,
                     tempRectF.set(pieRectF.left - (float) (pieCell * cos), pieRectF.top - (float) (pieCell * sin),
                             pieRectF.right - (float) (pieCell * cos), pieRectF.bottom - (float) (pieCell * sin));
                     mCanvas.drawArc(tempRectF, startRadius, itemType.radius, true, mPaint);
-                }else {
+                } else {
                     mCanvas.drawArc(tempRectF, startRadius, itemType.radius - (Math.abs(offRadius - sumRadius)), true, mPaint);
                     break;
                 }
@@ -289,13 +327,13 @@ public class PieChartView extends SurfaceView implements SurfaceHolder.Callback,
         if (innerRadius > 0 && pieCell == 0) {
             mCanvas.drawCircle(width / 2, height / 2, radius * innerRadius, mPaint);
         }
-        mSurfaceHolder.unlockCanvasAndPost(mCanvas);
     }
 
     public void resetPaint() {
         mPaint.reset();
         mPaint.setAntiAlias(true);
         mPaint.setDither(true);
+        mPaint.setAlpha(256);
     }
 
     /**
@@ -303,7 +341,7 @@ public class PieChartView extends SurfaceView implements SurfaceHolder.Callback,
      *
      * @param itemType
      */
-    public void addItemType(ItemType itemType) {
+    public void addItemType(PieChartView.ItemType itemType) {
         if (itemTypeList != null) {
             itemTypeList.add(itemType);
         }
@@ -359,16 +397,31 @@ public class PieChartView extends SurfaceView implements SurfaceHolder.Callback,
         this.textPadding = textPadding;
     }
 
+    /**
+     * 设置动画时间
+     *
+     * @param animDuration
+     */
+    public void setAnimDuration(long animDuration) {
+        this.animDuration = animDuration;
+    }
+
+    /**
+     * 代替方法{@link #setCell(int)}
+     *
+     * @param pieCell
+     */
+    @Deprecated
     public void setPieCell(int pieCell) {
-        this.pieCell = pieCell;
+        this.cell = pieCell;
     }
 
     public static class ItemType {
+        private static final DecimalFormat df = new DecimalFormat("0.0%");
         String type;
         int widget;
         int color;
         float radius;
-        DecimalFormat df = new DecimalFormat("0.0%");
 
         public ItemType(String type, int widget, int color) {
             this.type = type;
@@ -381,4 +434,3 @@ public class PieChartView extends SurfaceView implements SurfaceHolder.Callback,
         }
     }
 }
-
