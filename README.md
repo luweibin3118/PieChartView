@@ -14,7 +14,7 @@ project/build.gradle中添加：
 project/app/build.gradle中添加：
 	
 	dependencies {
-        compile 'com.github.luweibin3118:PieChartView:v1.0.1'
+        implementation 'com.github.luweibin3118:PieChartView:v1.1.0'
     }
 
 
@@ -25,6 +25,7 @@ project/app/build.gradle中添加：
         android:id="@+id/pie_chart_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
+        
 
 
  2. Java代码中，通过以下方法添加一条属性：
