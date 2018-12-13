@@ -14,7 +14,7 @@ project/build.gradle中添加：
 project/app/build.gradle中添加：
 	
 	dependencies {
-        implementation 'com.github.luweibin3118:PieChartView:v1.1.0'
+        implementation 'com.github.luweibin3118:PieChartView:v1.1.2'
     }
 
 
