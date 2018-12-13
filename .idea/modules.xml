@@ -3,11 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/PieChartView.iml" filepath="$PROJECT_DIR$/PieChartView.iml" />
-      <module fileurl="file://D:\github20180807\PieChartView\PieChartView.iml" filepath="D:\github20180807\PieChartView\PieChartView.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://D:\github20180807\PieChartView\app\app.iml" filepath="D:\github20180807\PieChartView\app\app.iml" />
       <module fileurl="file://$PROJECT_DIR$/piechartlib/piechartlib.iml" filepath="$PROJECT_DIR$/piechartlib/piechartlib.iml" />
-      <module fileurl="file://D:\github20180807\PieChartView\piechartlib\piechartlib.iml" filepath="D:\github20180807\PieChartView\piechartlib\piechartlib.iml" />
     </modules>
   </component>
 </project>

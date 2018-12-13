@@ -30,7 +30,7 @@ public class PieChartView extends View {
 
     private Path mPath, drawLinePath = new Path();
 
-    private PathMeasure mPathMeasure;
+    private PathMeasure mPathMeasure = new PathMeasure();
 
     private Canvas mCanvas;
 
@@ -65,6 +65,14 @@ public class PieChartView extends View {
     private ValueAnimator animator;
 
     private long animDuration = 1000;
+
+    private Point startPoint = new Point();
+
+    private Point centerPoint = new Point();
+
+    private Point endPoint = new Point();
+
+    private Point tempPoint = new Point();
 
     public PieChartView(Context context) {
         super(context);
@@ -173,9 +181,9 @@ public class PieChartView extends View {
             double angle = 2 * Math.PI * ((startRadius + itemType.radius / 2) / 360d);
             int x = (int) (width / 2 + radius * Math.cos(angle));
             int y = (int) (height / 2 + radius * Math.sin(angle));
-            Point startPoint = new Point(x, y);
-            Point centerPoint = new Point((int) (width / 2 + radius * 1.2f), height / 2 - radius + h * (i));
-            Point endPoint = new Point((int) (width * 0.98f), centerPoint.y);
+            startPoint.set(x, y);
+            centerPoint.set((int) (width / 2 + radius * 1.2f), height / 2 - radius + h * (i));
+            endPoint.set((int) (width * 0.98f), centerPoint.y);
             mPath.moveTo(startPoint.x, startPoint.y);
             mPath.lineTo(centerPoint.x, centerPoint.y);
             mPath.lineTo(endPoint.x, endPoint.y);
@@ -183,7 +191,7 @@ public class PieChartView extends View {
             mPaint.setStrokeWidth(2);
             mPaint.setColor(itemType.color);
             mPaint.setStyle(Paint.Style.STROKE);
-            mPathMeasure = new PathMeasure(mPath, false);
+            mPathMeasure.setPath(mPath, false);
             drawLinePath.reset();
             mPathMeasure.getSegment(0, mPathMeasure.getLength() * offLine, drawLinePath, true);
             mCanvas.drawPath(drawLinePath, mPaint);
@@ -215,9 +223,9 @@ public class PieChartView extends View {
             double angle = 2 * Math.PI * ((startRadius + itemType.radius / 2) / 360d);
             int x = (int) (width / 2 + radius * Math.cos(angle));
             int y = (int) (height / 2 + radius * Math.sin(angle));
-            Point startPoint = new Point(x, y);
-            Point centerPoint = new Point((int) (width / 2 - radius * 1.2f), height / 2 - radius + h * (count - 1 - i));
-            Point endPoint = new Point((int) (width * 0.02f), centerPoint.y);
+            startPoint.set(x, y);
+            centerPoint.set((int) (width / 2 - radius * 1.2f), height / 2 - radius + h * (count - 1 - i));
+            endPoint.set((int) (width * 0.02f), centerPoint.y);
             mPath.moveTo(startPoint.x, startPoint.y);
             mPath.lineTo(centerPoint.x, centerPoint.y);
             mPath.lineTo(endPoint.x, endPoint.y);
@@ -227,7 +235,7 @@ public class PieChartView extends View {
             mPaint.setAntiAlias(true);
             mPaint.setDither(true);
             mPaint.setStyle(Paint.Style.STROKE);
-            mPathMeasure = new PathMeasure(mPath, false);
+            mPathMeasure.setPath(mPath, false);
             drawLinePath.reset();
             mPathMeasure.getSegment(0, mPathMeasure.getLength() * offLine, drawLinePath, true);
             mCanvas.drawPath(drawLinePath, mPaint);
@@ -273,11 +281,11 @@ public class PieChartView extends View {
         for (PieChartView.ItemType itemType : itemTypeList) {
             itemType.radius = itemType.widget * a;
             double al = 2 * Math.PI * ((startRadius + 90) / 360d);
-            Point point = new Point((int) (width / 2 + radius * Math.sin(al)),
+            tempPoint.set((int) (width / 2 + radius * Math.sin(al)),
                     (int) (height / 2 - radius * Math.cos(al)));
             if (cell > 0) {
                 if (startRadius == defaultStartAngle) {
-                    firstPoint = point;
+                    firstPoint = tempPoint;
                 }
             }
 
@@ -314,7 +322,7 @@ public class PieChartView extends View {
             if (cell > 0 && pieCell == 0) {
                 mPaint.setColor(backGroundColor);
                 mPaint.setStrokeWidth(cell);
-                mCanvas.drawLine(getWidth() / 2, getHeight() / 2, point.x, point.y, mPaint);
+                mCanvas.drawLine(getWidth() / 2, getHeight() / 2, tempPoint.x, tempPoint.y, mPaint);
             }
         }
         if (cell > 0 && firstPoint != null && pieCell == 0) {
