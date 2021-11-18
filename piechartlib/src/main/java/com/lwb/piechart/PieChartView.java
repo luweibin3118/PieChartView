@@ -123,6 +123,7 @@ public class PieChartView extends View {
                     offLine = (value - 360f) / 360f;
                     if (offLine > 0.5f) {
                         textAlpha = (int) (255 * ((offLine - 0.5f) / 0.5f));
+                        if (textAlpha > 255) textAlpha = 255;
                     } else {
                         textAlpha = 0;
                     }
@@ -336,7 +337,7 @@ public class PieChartView extends View {
         mPaint.reset();
         mPaint.setAntiAlias(true);
         mPaint.setDither(true);
-        mPaint.setAlpha(256);
+        mPaint.setAlpha(255);
     }
 
     /**
