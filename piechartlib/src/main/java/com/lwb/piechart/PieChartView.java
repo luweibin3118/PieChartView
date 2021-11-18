@@ -8,7 +8,6 @@ import android.graphics.Path;
 import android.graphics.PathMeasure;
 import android.graphics.Point;
 import android.graphics.RectF;
-import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
@@ -19,10 +18,6 @@ import java.util.List;
 
 /**
  * @author 卢伟斌.
- * @date 2018/8/9.
- * ==================================
- * Copyright (c) 2018 TRANSSION.Co.Ltd.
- * All rights reserved.
  */
 public class PieChartView extends View {
 
@@ -79,7 +74,7 @@ public class PieChartView extends View {
         init();
     }
 
-    public PieChartView(Context context, @Nullable AttributeSet attrs) {
+    public PieChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
     }
